@@ -15,10 +15,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('rental_document_id')->constrained()->onDelete('cascade');
             $table->foreignId('product_id')->nullable()->constrained('products')->nullOnDelete(); // <-- dodaj to
-            $table->string('product_name');
             $table->unsignedInteger('quantity')->default(1);
-            $table->decimal('price_per_day', 8, 2)->default(0); // w złotych
-            $table->decimal('total_price', 8, 2)->default(0); // w złotych (price_per_day * quantity)
+            $table->integer('price_per_day')->default(0); // w groszach
+            $table->integer('total_price')->default(0); // w groszach (price_per_day * quantity)
             $table->timestamps();
         });
     }

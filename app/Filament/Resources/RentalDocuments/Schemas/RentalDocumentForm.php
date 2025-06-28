@@ -370,42 +370,25 @@ class RentalDocumentForm
                             ])
                             ->schema([
 
+                                Select::make('product_id')
+                                    ->label('Produkt')
+                                    ->options(fn () => Product::pluck('name', 'id'))
+                                    //->searchable()
+                                    ->required()
+                                    ->live()
+                                    ->columnSpanFull()
+                                    ->afterStateUpdated(function ($state, $set, $get) {
+                                        $product = Product::find($state);
+                                        if ($product) {
+                                            $set('product_name', $product->name);
+                                            $set('price_per_day', $product->price_per_day);
+                                            // Wylicz total_price od razu po wyborze produktu
+                                            $qty = (float) ($get('quantity') ?? 1);
+                                            $set('total_price', $qty * (float) $product->price_per_day);
+                                        }
+                                    })
+                                    ->preload(),
 
-
-
-                                Select::make('role')
-                                ->options([
-                                    'member' => 'Member',
-                                    'administrator' => 'Administrator',
-                                    'owner' => 'Owner',
-                                ])
-                                //->searchable()
-                                ->preload(),
-
-
-
-                                // Select::make('product_id')
-                                //     ->label('Produkt')
-                                //     ->options(fn () => Product::pluck('name', 'id'))
-                                //     //->searchable()
-                                //     ->required()
-                                //     //->live()
-                                //     ->columnSpanFull() // <-- to naprawia szerokość!
-                                //     ->afterStateUpdated(function ($state, $set) {
-                                //         $product = Product::find($state);
-                                //         if ($product) {
-                                //             $set('product_name', $product->name);
-                                //             $set('price_per_day', $product->price_per_day);
-                                //             // NIE ustawiaj quantity!
-                                //         }
-                                //     })
-                                //     ->preload()
-                                //     ,
-
-                                // TextInput::make('product_name')
-                                //     ->label('Nazwa produktu')
-                                //     ->required()
-                                //     ->readOnly(),
 
                                 TextInput::make('quantity')
                                     ->label('Ilość')
@@ -413,34 +396,38 @@ class RentalDocumentForm
                                     ->default(1)
                                     ->minValue(1)
                                     ->required()
-                                    ->live(onBlur: true),
-                                    // ->afterStateUpdated(function ($state, $get, $set) {
-                                    //     $qty = (float) $state;
-                                    //     $price = (float) $get('price_per_day');
-                                    //     $set('total_price', $qty * $price);
-                                    // }),
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function ($state, $get, $set) {
+                                        $qty = (float) $state;
+                                        $price = (float) $get('price_per_day');
+                                        $set('total_price', $qty * $price);
+                                    }),
 
                                 TextInput::make('price_per_day')
                                     ->label('Cena za dobę/szt.')
                                     ->numeric()
                                     ->step('0.01')
+                                    ->inputMode('decimal')
                                     ->suffix('zł')
                                     ->required()
                                     ->readOnly()
-                                    ->live(onBlur: true),
-                                    // ->afterStateUpdated(function ($state, $get, $set) {
-                                    //     $qty = (float) $get('quantity');
-                                    //     $price = (float) $state;
-                                    //     $set('total_price', $qty * $price);
-                                    // }),
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function ($state, $get, $set) {
+                                        $qty = (float) $get('quantity');
+                                        $price = (float) $state;
+                                        $set('total_price', $qty * $price);
+                                    })
+                                    ->formatStateUsing(fn ($state) => number_format((float)$state, 2, ',', ' ')),
 
                                 TextInput::make('total_price')
                                     ->label('Wartość razem')
                                     ->numeric()
                                     ->step('0.01')
+                                    ->inputMode('decimal')
                                     ->suffix('zł')
                                     ->readOnly()
-                                    ->default(0),
+                                    ->default(0)
+                                    ->formatStateUsing(fn ($state) => number_format((float)$state, 2, ',', ' ')),
                             ])
                             ->addActionLabel('Dodaj produkt')
                             ->columnSpanFull(),

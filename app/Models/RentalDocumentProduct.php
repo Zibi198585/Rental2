@@ -9,7 +9,7 @@ class RentalDocumentProduct extends Model
 {
     protected $fillable = [
         'rental_document_id',
-        'product_name',
+        'product_id',
         'quantity',
         'price_per_day',
         'total_price',
