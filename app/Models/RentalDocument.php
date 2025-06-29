@@ -47,13 +47,28 @@ class RentalDocument extends Model
         'delivery_cost',
         'pickup_cost',
 
-
+        // Podsumowania
+        'summary_products_total_per_day',
+        'summary_products_total_period',
+        'summary_delivery_total_period',
+        'summary_net_period',
+        'summary_vat_period',
+        'summary_gross_period',
+        'vat_rate', // Stawka VAT, domyślnie 23%
     ];
 
     protected $casts = [
         'delivery_cost' => MoneyCast::class,
         'pickup_cost'   => MoneyCast::class,
         'deposit'       => MoneyCast::class,
+
+        // Podsumowania
+        'summary_products_total_per_day' => MoneyCast::class,
+        'summary_products_total_period' => MoneyCast::class,
+        'summary_delivery_total_period' => MoneyCast::class,
+        'summary_net_period' => MoneyCast::class,
+        'summary_vat_period' => MoneyCast::class,
+        'summary_gross_period' => MoneyCast::class,
     ];
 
     protected $with = ['products'];

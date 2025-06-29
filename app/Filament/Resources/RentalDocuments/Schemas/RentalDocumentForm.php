@@ -326,19 +326,22 @@ class RentalDocumentForm
                                     ->label('Koszt dostawy')
                                     ->prefixIcon('heroicon-o-banknotes')
                                     ->numeric()
-                                    ->suffix('gr')
-                                    ->placeholder('0')
+                                    ->suffix('zł')
+                                    ->placeholder('0,00')
                                     ->helperText('Podaj kwotę w groszach')
-                                    //->visible(fn (Forms\Get $get): bool => $get('delivery_method') === 'dostawa_do_klienta')
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(fn (Get $get, Set $set) => self::updateSummary($get, $set))
                                     ->columnSpan(['sm' => 3, 'md' => 1]),
 
                                 TextInput::make('pickup_cost')
                                     ->label('Koszt odbioru')
                                     ->prefixIcon('heroicon-o-banknotes')
                                     ->numeric()
-                                    ->suffix('gr')
-                                    ->placeholder('0')
+                                    ->suffix('zł')
+                                    ->placeholder('0,00')
                                     ->helperText('Podaj kwotę w groszach')
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(fn (Get $get, Set $set) => self::updateSummary($get, $set))
                                     ->columnSpan(['sm' => 3, 'md' => 1]),
 
                                 TextInput::make('deposit')
@@ -348,6 +351,8 @@ class RentalDocumentForm
                                     ->suffix('gr')
                                     ->placeholder('0')
                                     ->helperText('Podaj kwotę w groszach')
+                                    ->live()
+                                    ->afterStateUpdated(fn (Get $get, Set $set) => self::updateSummary($get, $set))
                                     ->columnSpan(['sm' => 3, 'md' => 1]),
                             ]),
                     ])
@@ -382,10 +387,11 @@ class RentalDocumentForm
                                         if ($product) {
                                             $set('product_name', $product->name);
                                             $set('price_per_day', $product->price_per_day);
-                                            // Wylicz total_price od razu po wyborze produktu
                                             $qty = (float) ($get('quantity') ?? 1);
                                             $set('total_price', $qty * (float) $product->price_per_day);
                                         }
+                                        // Dodaj wywołanie przeliczenia podsumowania:
+                                        \App\Filament\Resources\RentalDocuments\Schemas\RentalDocumentForm::updateSummary($get, $set);
                                     })
                                     ->preload(),
 
@@ -430,11 +436,118 @@ class RentalDocumentForm
                                     ->formatStateUsing(fn ($state) => number_format((float)$state, 2, ',', ' ')),
                             ])
                             ->addActionLabel('Dodaj produkt')
+                            ->live()
+                            ->afterStateUpdated(fn (Get $get, Set $set) => self::updateSummary($get, $set))
                             ->columnSpanFull(),
                     ])
                     ->columnSpanFull(),
+
+                // Dodaj pole VAT i podsumowanie na końcu formularza
+                Section::make('Podsumowanie wynajmu')
+                    ->icon('heroicon-o-calculator')
+                    ->schema([
+                        // Suma produktów za 1 dzień
+                        \Filament\Forms\Components\Placeholder::make('summary_products_total_per_day')
+                            ->label('Suma produktów za 1 dzień')
+                            ->content(function (Get $get, Set $set) {
+                                $products = collect($get('products'));
+                                $sumProducts = $products->reduce(function ($sum, $item) {
+                                    return $sum + (float)($item['total_price'] ?? 0);
+                                }, 0);
+                                $set('summary_products_total_per_day', $sumProducts);
+                                return number_format($sumProducts, 2, ',', ' ') . ' zł';
+                            }),
+
+                        // Suma produktów za cały okres
+                        \Filament\Forms\Components\Placeholder::make('summary_products_total_period')
+                            ->label('Suma produktów za okres')
+                            ->content(function (Get $get, Set $set) {
+                                $sumProducts = (float) ($get('summary_products_total_per_day') ?? 0);
+                                $days = (int) ($get('rental_days') ?? 1);
+                                $total = $sumProducts * $days;
+                                $set('summary_products_total_period', $total);
+                                return number_format($total, 2, ',', ' ') . ' zł (' . $days . ' dni)';
+                            }),
+
+                        // Suma kosztów dostawy i odbioru (jednorazowo, bez mnożenia przez dni)
+                        \Filament\Forms\Components\Placeholder::make('summary_delivery_total_period')
+                            ->label('Suma dostaw i odbiorów')
+                            ->content(function (Get $get, Set $set) {
+                                $delivery = (float) ($get('delivery_cost') ?? 0);
+                                $pickup = (float) ($get('pickup_cost') ?? 0);
+                                $total = $delivery + $pickup;
+                                $set('summary_delivery_total_period', $total);
+                                return number_format($total, 2, ',', ' ') . ' zł';
+                            }),
+
+                        // Suma netto za okres (produkty + dostawa + odbiór + kaucja)
+                        \Filament\Forms\Components\Placeholder::make('summary_net_period')
+                            ->label('Suma netto za okres')
+                            ->content(function (Get $get, Set $set) {
+                                $products = (float) ($get('summary_products_total_period') ?? 0);
+                                $delivery = (float) ($get('summary_delivery_total_period') ?? 0);
+                                // $deposit = (float) ($get('deposit') ?? 0); // NIE dodawaj kaucji do sumy netto!
+                                $net = $products + $delivery;
+                                $set('summary_net_period', $net);
+                                return number_format($net, 2, ',', ' ') . ' zł';
+                            }),
+
+                        // VAT za okres
+                        \Filament\Forms\Components\Placeholder::make('summary_vat_period')
+                            ->label('VAT za okres')
+                            ->content(function (Get $get, Set $set) {
+                                $net = (float) ($get('summary_net_period') ?? 0);
+                                $vatRate = (float) ($get('vat_rate') ?? 23);
+                                $vat = round($net * $vatRate / 100, 2);
+                                $set('summary_vat_period', $vat);
+                                return number_format($vat, 2, ',', ' ') . ' zł';
+                            }),
+
+                        // Brutto za okres
+                        \Filament\Forms\Components\Placeholder::make('summary_gross_period')
+                            ->label('Suma brutto za okres')
+                            ->content(function (Get $get, Set $set) {
+                                $net = (float) ($get('summary_net_period') ?? 0);
+                                $vat = (float) ($get('summary_vat_period') ?? 0);
+                                $gross = $net + $vat;
+                                $set('summary_gross_period', $gross);
+                                return number_format($gross, 2, ',', ' ') . ' zł';
+                            }),
+
+                        // Stawka VAT
+                        \Filament\Forms\Components\TextInput::make('vat_rate')
+                            ->label('Stawka VAT (%)')
+                            ->numeric()
+                            ->default(23)
+                            ->minValue(0)
+                            ->maxValue(99)
+                            ->required()
+                            ->live(),
+                    ])
+                    ->columnSpanFull(),
+
             ])
             ->columns(1);
+    }
 
+    public static function updateSummary(Get $get, Set $set): void
+    {
+        $products = collect($get('products'));
+        $sumProducts = $products->reduce(function ($sum, $item) {
+            return $sum + (float)($item['total_price'] ?? 0);
+        }, 0);
+
+        $deposit = (float) ($get('deposit') ?? 0);
+        $delivery = (float) ($get('delivery_cost') ?? 0);
+        $pickup = (float) ($get('pickup_cost') ?? 0);
+
+        $net = $sumProducts + $deposit + $delivery + $pickup;
+        $vatRate = (float) ($get('vat_rate') ?? 23);
+        $vat = round($net * $vatRate / 100, 2);
+        $gross = $net + $vat;
+
+        $set('summary_net', $net);
+        $set('summary_vat', $vat);
+        $set('summary_gross', $gross);
     }
 }

@@ -63,6 +63,15 @@ return new class extends Migration
 
             $table->integer('deposit')->nullable(); // in cents
 
+            // Podsumowania (wszystko w groszach)
+            $table->integer('summary_products_total_per_day')->nullable();
+            $table->integer('summary_products_total_period')->nullable();
+            $table->integer('summary_delivery_total_period')->nullable();
+            $table->integer('summary_net_period')->nullable();
+            $table->integer('summary_vat_period')->nullable();
+            $table->integer('summary_gross_period')->nullable();
+            $table->integer('vat_rate')->default(23); // Stawka VAT, domyślnie 23%
+
             $table->timestamps();
         });
     }
