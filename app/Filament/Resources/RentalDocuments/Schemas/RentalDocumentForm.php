@@ -300,14 +300,9 @@ class RentalDocumentForm
                                                     ->step(0.01)
                                                     ->live(onBlur: true)
                                                     ->visible(fn (Get $get) => $get('delivery_method') === 'delivery_to_customer')
-                                                    ->formatStateUsing(fn ($state) => $state ? number_format((float)$state, 2, '.', '') : '0.00')
+                                                    ->formatStateUsing(fn ($state) => $state ? number_format((float)$state, 2, ',', ' ') : '0,00')
                                                     ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                                                        if ($state !== null && $state !== '') {
-                                                            $formattedCost = number_format((float)$state, 2, '.', '');
-                                                            $set('delivery_cost', $formattedCost);
-                                                        } else {
-                                                            $set('delivery_cost', '0.00');
-                                                        }
+                                                        $set('delivery_cost', (float)$state);
                                                         self::updateSummaryFields($get, $set);
                                                     }),
 
@@ -319,14 +314,9 @@ class RentalDocumentForm
                                                     ->step(0.01)
                                                     ->live(onBlur: true)
                                                     ->visible(fn (Get $get) => $get('delivery_method') === 'delivery_to_customer')
-                                                    ->formatStateUsing(fn ($state) => $state ? number_format((float)$state, 2, '.', '') : '0.00')
+                                                    ->formatStateUsing(fn ($state) => $state ? number_format((float)$state, 2, ',', ' ') : '0,00')
                                                     ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                                                        if ($state !== null && $state !== '') {
-                                                            $formattedCost = number_format((float)$state, 2, '.', '');
-                                                            $set('pickup_cost', $formattedCost);
-                                                        } else {
-                                                            $set('pickup_cost', '0.00');
-                                                        }
+                                                        $set('pickup_cost', (float)$state);
                                                         self::updateSummaryFields($get, $set);
                                                     }),
 
@@ -337,14 +327,9 @@ class RentalDocumentForm
                                                     ->default(0)
                                                     ->step(0.01)
                                                     ->live(onBlur: true)
-                                                    ->formatStateUsing(fn ($state) => $state ? number_format((float)$state, 2, '.', '') : '0.00')
+                                                    ->formatStateUsing(fn ($state) => $state ? number_format((float)$state, 2, ',', ' ') : '0,00')
                                                     ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                                                        if ($state !== null && $state !== '') {
-                                                            $formattedCost = number_format((float)$state, 2, '.', '');
-                                                            $set('deposit', $formattedCost);
-                                                        } else {
-                                                            $set('deposit', '0.00');
-                                                        }
+                                                        $set('deposit', (float)$state);
                                                         self::updateSummaryFields($get, $set);
                                                     }),
                                             ]),
@@ -365,12 +350,10 @@ class RentalDocumentForm
                                                     ->live()
                                                     ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                                         if ($product = Product::find($state)) {
-                                                            $pricePerDay = number_format((float) $product->price_per_day, 2, '.', '');
-                                                            $set('price_per_day', $pricePerDay);
+                                                            $set('price_per_day', (float) $product->price_per_day);
                                                             
                                                             $qty = (float) ($get('quantity') ?? 1);
-                                                            $totalPrice = number_format($qty * (float) $product->price_per_day, 2, '.', '');
-                                                            $set('total_price', $totalPrice);
+                                                            $set('total_price', $qty * (float) $product->price_per_day);
                                                         }
                                                         self::updateSummaryFields($get, $set);
                                                     }),
@@ -388,13 +371,12 @@ class RentalDocumentForm
                                                         if ($value == (int) $value) {
                                                             return (string) (int) $value;
                                                         }
-                                                        return rtrim(rtrim(number_format($value, 3, '.', ''), '0'), '.');
+                                                        return rtrim(rtrim(number_format($value, 3, ',', ''), '0'), ',');
                                                     })
                                                     ->afterStateUpdated(function ($state, Get $get, Set $set) {
                                                         $qty = (float) $state;
-                                                        $price = (float) str_replace(',', '.', $get('price_per_day') ?? 0);
-                                                        $totalPrice = number_format($qty * $price, 2, '.', '');
-                                                        $set('total_price', $totalPrice);
+                                                        $price = (float) ($get('price_per_day') ?? 0);
+                                                        $set('total_price', $qty * $price);
                                                         self::updateSummaryFields($get, $set);
                                                     }),
 
@@ -404,14 +386,16 @@ class RentalDocumentForm
                                                     ->suffix('zł')
                                                     ->required()
                                                     ->readOnly()
-                                                    ->step(0.01),
+                                                    ->step(0.01)
+                                                    ->formatStateUsing(fn ($state) => $state ? number_format((float)$state, 2, ',', ' ') : '0,00'),
 
                                                 TextInput::make('total_price')
                                                     ->label('Wartość razem')
                                                     ->numeric()
                                                     ->suffix('zł')
                                                     ->readOnly()
-                                                    ->step(0.01),
+                                                    ->step(0.01)
+                                                    ->formatStateUsing(fn ($state) => $state ? number_format((float)$state, 2, ',', ' ') : '0,00'),
                                             ])
                                             ->addActionLabel('Dodaj produkt')
                                             ->live()
@@ -425,7 +409,7 @@ class RentalDocumentForm
                                                     $productName = $product?->name ?? 'Nieznany produkt';
                                                 }
                                                 $quantity = $state['quantity'] ?? 1;
-                                                $total = isset($state['total_price']) ? number_format((float)$state['total_price'], 2, ',', '') : '0,00';
+                                                $total = isset($state['total_price']) ? number_format((float)$state['total_price'], 2, ',', ' ') : '0,00';
                                                 
                                                 return $productName ? "{$productName} (x{$quantity}) - {$total} zł" : 'Nowy produkt';
                                             }),
@@ -448,9 +432,9 @@ class RentalDocumentForm
                                                     ->formatStateUsing(function ($state, Get $get) {
                                                         if (empty($state)) {
                                                             $total = self::calculateProductsPerDay($get);
-                                                            return number_format($total, 2, '.', '');
+                                                            return number_format($total, 2, ',', ' ');
                                                         }
-                                                        return number_format((float)$state, 2, '.', '');
+                                                        return number_format((float)$state, 2, ',', ' ');
                                                     }),
 
                                                 TextInput::make('summary_products_total')
@@ -463,9 +447,9 @@ class RentalDocumentForm
                                                             $perDay = self::calculateProductsPerDay($get);
                                                             $days = (int) ($get('rental_days') ?? 1);
                                                             $total = $perDay * $days;
-                                                            return number_format($total, 2, '.', '');
+                                                            return number_format($total, 2, ',', ' ');
                                                         }
-                                                        return number_format((float)$state, 2, '.', '');
+                                                        return number_format((float)$state, 2, ',', ' ');
                                                     }),
 
                                                 TextInput::make('summary_delivery')
@@ -475,12 +459,12 @@ class RentalDocumentForm
                                                     ->live()
                                                     ->formatStateUsing(function ($state, Get $get) {
                                                         if (empty($state)) {
-                                                            $delivery = (float) str_replace(',', '.', $get('delivery_cost') ?? 0);
-                                                            $pickup = (float) str_replace(',', '.', $get('pickup_cost') ?? 0);
+                                                            $delivery = (float) ($get('delivery_cost') ?? 0);
+                                                            $pickup = (float) ($get('pickup_cost') ?? 0);
                                                             $total = $delivery + $pickup;
-                                                            return number_format($total, 2, '.', '');
+                                                            return number_format($total, 2, ',', ' ');
                                                         }
-                                                        return number_format((float)$state, 2, '.', '');
+                                                        return number_format((float)$state, 2, ',', ' ');
                                                     }),
 
                                                 TextInput::make('summary_deposit')
@@ -490,10 +474,10 @@ class RentalDocumentForm
                                                     ->live()
                                                     ->formatStateUsing(function ($state, Get $get) {
                                                         if (empty($state)) {
-                                                            $deposit = (float) str_replace(',', '.', $get('deposit') ?? 0);
-                                                            return number_format($deposit, 2, '.', '');
+                                                            $deposit = (float) ($get('deposit') ?? 0);
+                                                            return number_format($deposit, 2, ',', ' ');
                                                         }
-                                                        return number_format((float)$state, 2, '.', '');
+                                                        return number_format((float)$state, 2, ',', ' ');
                                                     }),
                                             ]),
 
@@ -518,9 +502,9 @@ class RentalDocumentForm
                                                     ->formatStateUsing(function ($state, Get $get) {
                                                         if (empty($state)) {
                                                             $total = self::calculateGrandTotal($get);
-                                                            return number_format($total, 2, '.', '');
+                                                            return number_format($total, 2, ',', ' ');
                                                         }
-                                                        return number_format((float)$state, 2, '.', '');
+                                                        return number_format((float)$state, 2, ',', ' ');
                                                     }),
                                             ]),
                                     ]),
@@ -545,7 +529,7 @@ class RentalDocumentForm
     private static function calculateProductsPerDay(Get $get): float
     {
         $products = collect($get('products') ?? []);
-        return $products->sum(fn ($item) => (float) str_replace(',', '.', $item['total_price'] ?? 0));
+        return $products->sum(fn ($item) => (float) ($item['total_price'] ?? 0));
     }
 
     private static function calculateGrandTotal(Get $get): float
@@ -554,8 +538,8 @@ class RentalDocumentForm
         $days = (int) ($get('rental_days') ?? 1);
         $products = $productsPerDay * $days;
         
-        $delivery = (float) str_replace(',', '.', $get('delivery_cost') ?? 0);
-        $pickup = (float) str_replace(',', '.', $get('pickup_cost') ?? 0);
+        $delivery = (float) ($get('delivery_cost') ?? 0);
+        $pickup = (float) ($get('pickup_cost') ?? 0);
         
         // Kaucja NIE jest dodawana do sumy - to zabezpieczenie, nie koszt!
         $net = $products + $delivery + $pickup;
@@ -569,26 +553,26 @@ class RentalDocumentForm
     {
         // Produkty za dobę
         $productsPerDay = self::calculateProductsPerDay($get);
-        $set('summary_products_per_day', number_format($productsPerDay, 2, '.', ''));
+        $set('summary_products_per_day', $productsPerDay);
         
         // Produkty za okres
         $days = (int) ($get('rental_days') ?? 1);
         $productsTotal = $productsPerDay * $days;
-        $set('summary_products_total', number_format($productsTotal, 2, '.', ''));
+        $set('summary_products_total', $productsTotal);
         
         // Dostawa i odbiór
-        $delivery = (float) str_replace(',', '.', $get('delivery_cost') ?? 0);
-        $pickup = (float) str_replace(',', '.', $get('pickup_cost') ?? 0);
+        $delivery = (float) ($get('delivery_cost') ?? 0);
+        $pickup = (float) ($get('pickup_cost') ?? 0);
         $deliveryTotal = $delivery + $pickup;
-        $set('summary_delivery', number_format($deliveryTotal, 2, '.', ''));
+        $set('summary_delivery', $deliveryTotal);
         
         // Kaucja
-        $deposit = (float) str_replace(',', '.', $get('deposit') ?? 0);
-        $set('summary_deposit', number_format($deposit, 2, '.', ''));
+        $deposit = (float) ($get('deposit') ?? 0);
+        $set('summary_deposit', $deposit);
         
         // Suma końcowa
         $total = self::calculateGrandTotal($get);
-        $set('summary_total', number_format($total, 2, '.', ''));
+        $set('summary_total', $total);
     }
 
     public static function updateSummary(Get $get, Set $set): void
