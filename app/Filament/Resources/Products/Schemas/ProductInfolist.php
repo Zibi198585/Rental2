@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Products\Schemas;
 
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Grid;
@@ -16,6 +17,12 @@ class ProductInfolist
                 Section::make('Podstawowe informacje')
                     ->icon('heroicon-o-cube')
                     ->schema([
+                        ImageEntry::make('image')
+                            ->label('Zdjęcie produktu')
+                            ->defaultImageUrl(asset('images/no-image.svg'))
+                            ->size(200)
+                            ->columnSpanFull(),
+                            
                         Grid::make(['default' => 1, 'sm' => 2])
                             ->schema([
                                 TextEntry::make('name')

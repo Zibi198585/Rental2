@@ -12,10 +12,10 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\DatePicker;
+use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Forms\Components\Repeater\TableColumn;
-
 
 class RentalDocumentForm
 {
@@ -23,531 +23,576 @@ class RentalDocumentForm
     {
         return $schema
             ->components([
-                // Sekcja podstawowych informacji
-                Section::make('Informacje podstawowe')
-                    ->description('Podstawowe dane dotyczące umowy najmu')
-                    ->icon('heroicon-o-information-circle')
-                    ->collapsible()
-                    ->schema([
-                        Grid::make(2)
+                Tabs::make('Formularz umowy')
+                    ->tabs([
+                        // Tab 1: Podstawowe informacje
+                        Tabs\Tab::make('Podstawowe')
+                            ->icon('heroicon-o-document-text')
                             ->schema([
-                                TextInput::make('agreement_number')
-                                    ->label('Numer umowy')
-                                    ->placeholder('np. UMO/2024/001')
-                                    ->prefixIcon('heroicon-o-hashtag')
-                                    ->maxLength(255)
-                                    ->columnSpan(['md' => 1]),
+                                Grid::make(2)
+                                    ->schema([
+                                        TextInput::make('agreement_number')
+                                            ->label('Numer umowy')
+                                            ->placeholder('Wygeneruje się automatycznie')
+                                            ->prefixIcon('heroicon-o-hashtag')
+                                            ->maxLength(255)
+                                            ->readOnly(),
 
-                                Select::make('status')
-                                    ->label('Status umowy')
-                                    ->options([
-                                        'draft' => 'Wersja robocza',
-                                        'rented' => 'Wynajęta',
-                                        'partially_returned' => 'Częściowo zwrócona',
-                                        'scheduled_return' => 'Zaplanowany zwrot',
-                                        'returned' => 'Zwrócona',
-                                    ])
-                                    ->default('draft')
-                                    ->required()
-                                    ->prefixIcon('heroicon-o-clipboard-document-check')
-                                    ->native(false)
-                                    ->live()
-                                    ->columnSpan(['md' => 1]),
+                                        Select::make('status')
+                                            ->label('Status')
+                                            ->options([
+                                                'draft' => 'Wersja robocza',
+                                                'rented' => 'Wynajęta',
+                                                'partially_returned' => 'Częściowo zwrócona',
+                                                'scheduled_return' => 'Zaplanowany zwrot',
+                                                'returned' => 'Zwrócona',
+                                            ])
+                                            ->default('draft')
+                                            ->required()
+                                            ->native(false)
+                                            ->live(),
+                                    ]),
 
-                                TextInput::make('city')
-                                    ->label('Miasto')
-                                    ->default('Wyry')
-                                    ->required()
+                                Grid::make(2)
+                                    ->schema([
+                                        TextInput::make('contractor_full_name')
+                                            ->label('Kontrahent')
+                                            ->required()
+                                            ->prefixIcon('heroicon-o-user')
+                                            ->placeholder('Imię i nazwisko lub nazwa firmy')
+                                            ->maxLength(255),
+
+                                        TextInput::make('city')
+                                            ->label('Miasto najmu')
+                                            ->default('Wyry')
+                                            ->required()
+                                            ->prefixIcon('heroicon-o-map-pin')
+                                            ->maxLength(255),
+                                    ]),
+
+                                TextInput::make('equipment_location')
+                                    ->label('Lokalizacja sprzętu')
                                     ->prefixIcon('heroicon-o-map-pin')
+                                    ->placeholder('np. ul. Kopaniny 2, 43-175 Wyry')
                                     ->maxLength(255)
-                                    ->columnSpan(['md' => 1]),
+                                    ->columnSpanFull(),
                             ]),
 
-                        TextInput::make('contractor_full_name')
-                            ->label('Nazwa kontrahenta')
-                            ->required()
-                            ->prefixIcon('heroicon-o-user')
-                            ->placeholder('Imię i nazwisko lub nazwa firmy')
-                            ->maxLength(255)
-                            ->columnSpanFull(),
-                    ])
-                    ->columnSpanFull(),
-
-                // Sekcja adresu zameldowania
-                Section::make('Adres zameldowania')
-                    ->description('Adres zameldowania kontrahenta')
-                    ->icon('heroicon-o-home')
-                    ->collapsible()
-                    ->schema([
-                        Grid::make(3)
+                        // Tab 2: Dane kontaktowe i dokumenty
+                        Tabs\Tab::make('Kontakt i dokumenty')
+                            ->icon('heroicon-o-identification')
                             ->schema([
-                                TextInput::make('address_street')
-                                    ->label('Ulica')
-                                    ->prefixIcon('heroicon-o-map')
-                                    ->placeholder('np. ul. Główna')
-                                    ->maxLength(255)
-                                    ->columnSpan(['sm' => 3, 'md' => 2]),
+                                Section::make('Dane kontaktowe')
+                                    ->schema([
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextInput::make('contact_phone')
+                                                    ->label('Telefon')
+                                                    ->prefixIcon('heroicon-o-phone')
+                                                    ->placeholder('+48 000 000 000')
+                                                    ->tel()
+                                                    ->maxLength(255),
 
-                                TextInput::make('address_building_number')
-                                    ->label('Nr budynku')
-                                    ->prefixIcon('heroicon-o-building-office')
-                                    ->placeholder('np. 15')
-                                    ->maxLength(255)
-                                    ->columnSpan(['sm' => 3, 'md' => 1]),
-                            ]),
-
-                        Grid::make(4)
-                            ->schema([
-                                TextInput::make('address_apartment_number')
-                                    ->label('Nr mieszkania')
-                                    ->prefixIcon('heroicon-o-key')
-                                    ->placeholder('np. 5')
-                                    ->maxLength(255)
-                                    ->columnSpan(['sm' => 2, 'md' => 1]),
-
-                                TextInput::make('address_postal_code')
-                                    ->label('Kod pocztowy')
-                                    ->prefixIcon('heroicon-o-envelope')
-                                    ->placeholder('00-000')
-                                    ->mask('99-999')
-                                    ->maxLength(6)
-                                    ->columnSpan(['sm' => 2, 'md' => 1]),
-
-                                TextInput::make('address_city')
-                                    ->label('Miasto')
-                                    ->prefixIcon('heroicon-o-map-pin')
-                                    ->placeholder('np. Warszawa')
-                                    ->maxLength(255)
-                                    ->columnSpan(['sm' => 2, 'md' => 1]),
-
-                                TextInput::make('address_voivodeship')
-                                    ->label('Województwo')
-                                    ->prefixIcon('heroicon-o-globe-europe-africa')
-                                    ->placeholder('np. mazowieckie')
-                                    ->maxLength(255)
-                                    ->columnSpan(['sm' => 2, 'md' => 1]),
-                            ]),
-
-                        TextInput::make('address_country')
-                            ->label('Kraj')
-                            ->prefixIcon('heroicon-o-flag')
-                            ->placeholder('np. Polska')
-                            ->maxLength(255)
-                            ->columnSpanFull(),
-                    ])
-                    ->columnSpanFull(),
-
-                // Sekcja dokumentów i danych osobowych
-                Section::make('Dokumenty i dane osobowe')
-                    ->description('Informacje dotyczące dokumentów tożsamości i danych kontaktowych')
-                    ->icon('heroicon-o-identification')
-                    ->collapsible()
-                    ->schema([
-                        Grid::make(2)
-                            ->schema([
-                                Select::make('document_type')
-                                    ->label('Typ dokumentu')
-                                    ->options([
-                                        'identity_card' => 'Dowód osobisty',
-                                        'passport' => 'Paszport',
-                                        'driving_license' => 'Prawo jazdy',
-                                        'other' => 'Inny dokument',
+                                                TextInput::make('contact_email')
+                                                    ->label('Email')
+                                                    ->prefixIcon('heroicon-o-envelope')
+                                                    ->placeholder('email@example.com')
+                                                    ->email()
+                                                    ->maxLength(255),
+                                            ]),
                                     ])
-                                    ->default('identity_card')
-                                    ->required()
-                                    ->prefixIcon('heroicon-o-identification')
-                                    ->native(false)
-                                    ->live()
-                                    ->columnSpan(['md' => 1]),
+                                    ->compact(),
 
-                                TextInput::make('document_number')
-                                    ->label('Numer dokumentu')
-                                    ->prefixIcon('heroicon-o-hashtag')
-                                    ->placeholder('np. ABC123456')
-                                    ->maxLength(255)
-                                    ->columnSpan(['md' => 1]),
+                                Section::make('Dokumenty tożsamości')
+                                    ->schema([
+                                        Grid::make(2)
+                                            ->schema([
+                                                Select::make('document_type')
+                                                    ->label('Typ dokumentu')
+                                                    ->options([
+                                                        'identity_card' => 'Dowód osobisty',
+                                                        'passport' => 'Paszport',
+                                                        'driving_license' => 'Prawo jazdy',
+                                                        'other' => 'Inny dokument',
+                                                    ])
+                                                    ->default('identity_card')
+                                                    ->required()
+                                                    ->native(false)
+                                                    ->live(),
+
+                                                TextInput::make('document_number')
+                                                    ->label('Numer dokumentu')
+                                                    ->prefixIcon('heroicon-o-hashtag')
+                                                    ->placeholder('np. ABC123456')
+                                                    ->maxLength(255),
+                                            ]),
+
+                                        TextInput::make('other_document')
+                                            ->label('Opis innego dokumentu')
+                                            ->placeholder('Opisz jaki dokument')
+                                            ->maxLength(255)
+                                            ->visible(fn (Get $get) => $get('document_type') === 'other'),
+
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextInput::make('pesel')
+                                                    ->label('PESEL')
+                                                    ->placeholder('00000000000')
+                                                    ->mask('99999999999')
+                                                    ->length(11),
+
+                                                TextInput::make('nip')
+                                                    ->label('NIP')
+                                                    ->placeholder('0000000000')
+                                                    ->mask('9999999999')
+                                                    ->length(10),
+                                            ]),
+                                    ])
+                                    ->compact(),
                             ]),
 
-                        TextInput::make('other_document')
-                            ->label('Inny dokument (opis)')
-                            ->prefixIcon('heroicon-o-document')
-                            ->placeholder('Opisz jaki dokument')
-                            ->maxLength(255)
-                            ->visible(fn (Get $get) => $get('document_type') === 'other')
-                            ->columnSpanFull(),
-
-                        Grid::make(2)
+                        // Tab 3: Adres
+                        Tabs\Tab::make('Adres')
+                            ->icon('heroicon-o-home')
                             ->schema([
-                                TextInput::make('pesel')
-                                    ->label('PESEL')
-                                    ->prefixIcon('heroicon-o-identification')
-                                    ->placeholder('00000000000')
-                                    ->mask('99999999999')
-                                    ->length(11)
-                                    ->columnSpan(['md' => 1]),
+                                Grid::make(4)
+                                    ->schema([
+                                        TextInput::make('address_street')
+                                            ->label('Ulica')
+                                            ->placeholder('np. ul. Główna')
+                                            ->maxLength(255),
 
-                                TextInput::make('nip')
-                                    ->label('NIP')
-                                    ->prefixIcon('heroicon-o-building-office-2')
-                                    ->placeholder('0000000000')
-                                    ->mask('9999999999')
-                                    ->length(10)
-                                    ->columnSpan(['md' => 1]),
+                                        TextInput::make('address_building_number')
+                                            ->label('Nr budynku')
+                                            ->placeholder('15')
+                                            ->maxLength(255),
+
+                                        TextInput::make('address_apartment_number')
+                                            ->label('Nr lokalu')
+                                            ->placeholder('5')
+                                            ->maxLength(255),
+
+                                        TextInput::make('address_postal_code')
+                                            ->label('Kod pocztowy')
+                                            ->placeholder('00-000')
+                                            ->mask('99-999')
+                                            ->maxLength(6),
+                                    ]),
+
+                                Grid::make(4)
+                                    ->schema([
+                                        TextInput::make('address_city')
+                                            ->label('Miasto')
+                                            ->placeholder('Warszawa')
+                                            ->maxLength(255),
+
+                                        Select::make('address_voivodeship')
+                                            ->label('Województwo')
+                                            ->options([
+                                                'dolnośląskie' => 'Dolnośląskie',
+                                                'kujawsko-pomorskie' => 'Kujawsko-pomorskie',
+                                                'lubelskie' => 'Lubelskie',
+                                                'lubuskie' => 'Lubuskie',
+                                                'łódzkie' => 'Łódzkie',
+                                                'małopolskie' => 'Małopolskie',
+                                                'mazowieckie' => 'Mazowieckie',
+                                                'opolskie' => 'Opolskie',
+                                                'podkarpackie' => 'Podkarpackie',
+                                                'podlaskie' => 'Podlaskie',
+                                                'pomorskie' => 'Pomorskie',
+                                                'śląskie' => 'Śląskie',
+                                                'świętokrzyskie' => 'Świętokrzyskie',
+                                                'warmińsko-mazurskie' => 'Warmińsko-mazurskie',
+                                                'wielkopolskie' => 'Wielkopolskie',
+                                                'zachodniopomorskie' => 'Zachodniopomorskie',
+                                            ])
+                                            ->searchable()
+                                            ->native(false)
+                                            ->visible(fn (Get $get) => $get('address_country') === 'Polska' || !$get('address_country')),
+
+                                        TextInput::make('address_voivodeship_text')
+                                            ->label('Województwo/Stan')
+                                            ->placeholder('np. California')
+                                            ->maxLength(255)
+                                            ->visible(fn (Get $get) => $get('address_country') !== 'Polska' && $get('address_country')),
+
+                                        Select::make('address_country')
+                                            ->label('Kraj')
+                                            ->options([
+                                                'Polska' => 'Polska',
+                                                'Niemcy' => 'Niemcy',
+                                                'Czechy' => 'Czechy',
+                                                'Słowacja' => 'Słowacja',
+                                                'Ukraina' => 'Ukraina',
+                                                'Litwa' => 'Litwa',
+                                                'Białoruś' => 'Białoruś',
+                                                'Rosja' => 'Rosja',
+                                                'Inne' => 'Inne',
+                                            ])
+                                            ->default('Polska')
+                                            ->searchable()
+                                            ->native(false)
+                                            ->live(),
+                                    ]),
                             ]),
 
-                        Grid::make(2)
+                        // Tab 4: Wynajem i produkty
+                        Tabs\Tab::make('Wynajem')
+                            ->icon('heroicon-o-calendar-days')
                             ->schema([
-                                TextInput::make('contact_phone')
-                                    ->label('Telefon kontaktowy')
-                                    ->prefixIcon('heroicon-o-phone')
-                                    ->placeholder('+48 000 000 000')
-                                    ->tel()
-                                    ->maxLength(255)
-                                    ->columnSpan(['md' => 1]),
+                                Section::make('Okres wynajmu')
+                                    ->schema([
+                                        Grid::make(3)
+                                            ->schema([
+                                                DatePicker::make('rental_date')
+                                                    ->label('Data wynajmu')
+                                                    ->native(false)
+                                                    ->displayFormat('d.m.Y')
+                                                    ->format('Y-m-d')
+                                                    ->default(now())
+                                                    ->required()
+                                                    ->live()
+                                                    ->afterStateUpdated(fn (Get $get, Set $set) => self::calculateDays($get, $set)),
 
-                                TextInput::make('contact_email')
-                                    ->label('Email kontaktowy')
-                                    ->prefixIcon('heroicon-o-envelope')
-                                    ->placeholder('email@example.com')
-                                    ->email()
-                                    ->maxLength(255)
-                                    ->columnSpan(['md' => 1]),
+                                                DatePicker::make('expected_return_date')
+                                                    ->label('Przewidywany zwrot')
+                                                    ->native(false)
+                                                    ->displayFormat('d.m.Y')
+                                                    ->format('Y-m-d')
+                                                    ->default(now()->addDay())
+                                                    ->required()
+                                                    ->minDate(fn (Get $get) => $get('rental_date') ? Carbon::parse($get('rental_date'))->addDay() : now()->addDay())
+                                                    ->live()
+                                                    ->afterStateUpdated(fn (Get $get, Set $set) => self::calculateDays($get, $set)),
+
+                                                TextInput::make('rental_days')
+                                                    ->label('Liczba dni')
+                                                    ->numeric()
+                                                    ->suffix('dni')
+                                                    ->readOnly()
+                                                    ->default(1)
+                                                    ->live(),
+                                            ]),
+                                    ])
+                                    ->compact(),
+
+                                Section::make('Dostawa')
+                                    ->schema([
+                                        Select::make('delivery_method')
+                                            ->label('Sposób dostawy')
+                                            ->options([
+                                                'self_pickup' => 'Odbiór osobisty',
+                                                'delivery_to_customer' => 'Dostawa do klienta',
+                                            ])
+                                            ->default('self_pickup')
+                                            ->required()
+                                            ->native(false)
+                                            ->live()
+                                            ->afterStateUpdated(fn (Get $get, Set $set) => self::updateSummaryFields($get, $set)),
+
+                                        Grid::make(3)
+                                            ->schema([
+                                                TextInput::make('delivery_cost')
+                                                    ->label('Koszt dostawy')
+                                                    ->numeric()
+                                                    ->suffix('zł')
+                                                    ->default(0)
+                                                    ->step(0.01)
+                                                    ->live(onBlur: true)
+                                                    ->visible(fn (Get $get) => $get('delivery_method') === 'delivery_to_customer')
+                                                    ->formatStateUsing(fn ($state) => $state ? number_format((float)$state, 2, '.', '') : '0.00')
+                                                    ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                                        if ($state !== null && $state !== '') {
+                                                            $formattedCost = number_format((float)$state, 2, '.', '');
+                                                            $set('delivery_cost', $formattedCost);
+                                                        } else {
+                                                            $set('delivery_cost', '0.00');
+                                                        }
+                                                        self::updateSummaryFields($get, $set);
+                                                    }),
+
+                                                TextInput::make('pickup_cost')
+                                                    ->label('Koszt odbioru')
+                                                    ->numeric()
+                                                    ->suffix('zł')
+                                                    ->default(0)
+                                                    ->step(0.01)
+                                                    ->live(onBlur: true)
+                                                    ->visible(fn (Get $get) => $get('delivery_method') === 'delivery_to_customer')
+                                                    ->formatStateUsing(fn ($state) => $state ? number_format((float)$state, 2, '.', '') : '0.00')
+                                                    ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                                        if ($state !== null && $state !== '') {
+                                                            $formattedCost = number_format((float)$state, 2, '.', '');
+                                                            $set('pickup_cost', $formattedCost);
+                                                        } else {
+                                                            $set('pickup_cost', '0.00');
+                                                        }
+                                                        self::updateSummaryFields($get, $set);
+                                                    }),
+
+                                                TextInput::make('deposit')
+                                                    ->label('Kaucja')
+                                                    ->numeric()
+                                                    ->suffix('zł')
+                                                    ->default(0)
+                                                    ->step(0.01)
+                                                    ->live(onBlur: true)
+                                                    ->formatStateUsing(fn ($state) => $state ? number_format((float)$state, 2, '.', '') : '0.00')
+                                                    ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                                        if ($state !== null && $state !== '') {
+                                                            $formattedCost = number_format((float)$state, 2, '.', '');
+                                                            $set('deposit', $formattedCost);
+                                                        } else {
+                                                            $set('deposit', '0.00');
+                                                        }
+                                                        self::updateSummaryFields($get, $set);
+                                                    }),
+                                            ]),
+                                    ])
+                                    ->compact(),
+
+                                Section::make('Produkty w wynajmie')
+                                    ->schema([
+                                        Repeater::make('products')
+                                            ->relationship('products')
+                                            ->schema([
+                                                Select::make('product_id')
+                                                    ->label('Produkt')
+                                                    ->options(Product::pluck('name', 'id'))
+                                                    ->required()
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->live()
+                                                    ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                                        if ($product = Product::find($state)) {
+                                                            $pricePerDay = number_format((float) $product->price_per_day, 2, '.', '');
+                                                            $set('price_per_day', $pricePerDay);
+                                                            
+                                                            $qty = (float) ($get('quantity') ?? 1);
+                                                            $totalPrice = number_format($qty * (float) $product->price_per_day, 2, '.', '');
+                                                            $set('total_price', $totalPrice);
+                                                        }
+                                                        self::updateSummaryFields($get, $set);
+                                                    }),
+
+                                                TextInput::make('quantity')
+                                                    ->label('Ilość')
+                                                    ->numeric()
+                                                    ->default(1)
+                                                    ->minValue(1)
+                                                    ->required()
+                                                    ->live(onBlur: true)
+                                                    ->formatStateUsing(function ($state) {
+                                                        if (!$state) return '1';
+                                                        $value = (float) $state;
+                                                        if ($value == (int) $value) {
+                                                            return (string) (int) $value;
+                                                        }
+                                                        return rtrim(rtrim(number_format($value, 3, '.', ''), '0'), '.');
+                                                    })
+                                                    ->afterStateUpdated(function ($state, Get $get, Set $set) {
+                                                        $qty = (float) $state;
+                                                        $price = (float) str_replace(',', '.', $get('price_per_day') ?? 0);
+                                                        $totalPrice = number_format($qty * $price, 2, '.', '');
+                                                        $set('total_price', $totalPrice);
+                                                        self::updateSummaryFields($get, $set);
+                                                    }),
+
+                                                TextInput::make('price_per_day')
+                                                    ->label('Cena za dobę/szt.')
+                                                    ->numeric()
+                                                    ->suffix('zł')
+                                                    ->required()
+                                                    ->readOnly()
+                                                    ->step(0.01),
+
+                                                TextInput::make('total_price')
+                                                    ->label('Wartość razem')
+                                                    ->numeric()
+                                                    ->suffix('zł')
+                                                    ->readOnly()
+                                                    ->step(0.01),
+                                            ])
+                                            ->addActionLabel('Dodaj produkt')
+                                            ->live()
+                                            ->afterStateUpdated(fn (Get $get, Set $set) => self::updateSummaryFields($get, $set))
+                                            ->columnSpanFull()
+                                            ->columns(4)
+                                            ->itemLabel(function (array $state): ?string {
+                                                $productName = '';
+                                                if (!empty($state['product_id'])) {
+                                                    $product = Product::find($state['product_id']);
+                                                    $productName = $product?->name ?? 'Nieznany produkt';
+                                                }
+                                                $quantity = $state['quantity'] ?? 1;
+                                                $total = isset($state['total_price']) ? number_format((float)$state['total_price'], 2, ',', '') : '0,00';
+                                                
+                                                return $productName ? "{$productName} (x{$quantity}) - {$total} zł" : 'Nowy produkt';
+                                            }),
+                                    ]),
+                            ]),
+
+                        // Tab 5: Podsumowanie
+                        Tabs\Tab::make('Podsumowanie')
+                            ->icon('heroicon-o-calculator')
+                            ->schema([
+                                Section::make('Kalkulacja kosztów')
+                                    ->schema([
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextInput::make('summary_products_per_day')
+                                                    ->label('Produkty za dobę')
+                                                    ->readOnly()
+                                                    ->suffix('zł')
+                                                    ->live()
+                                                    ->formatStateUsing(function ($state, Get $get) {
+                                                        if (empty($state)) {
+                                                            $total = self::calculateProductsPerDay($get);
+                                                            return number_format($total, 2, '.', '');
+                                                        }
+                                                        return number_format((float)$state, 2, '.', '');
+                                                    }),
+
+                                                TextInput::make('summary_products_total')
+                                                    ->label('Produkty za okres')
+                                                    ->readOnly()
+                                                    ->suffix('zł')
+                                                    ->live()
+                                                    ->formatStateUsing(function ($state, Get $get) {
+                                                        if (empty($state)) {
+                                                            $perDay = self::calculateProductsPerDay($get);
+                                                            $days = (int) ($get('rental_days') ?? 1);
+                                                            $total = $perDay * $days;
+                                                            return number_format($total, 2, '.', '');
+                                                        }
+                                                        return number_format((float)$state, 2, '.', '');
+                                                    }),
+
+                                                TextInput::make('summary_delivery')
+                                                    ->label('Dostawa i odbiór')
+                                                    ->readOnly()
+                                                    ->suffix('zł')
+                                                    ->live()
+                                                    ->formatStateUsing(function ($state, Get $get) {
+                                                        if (empty($state)) {
+                                                            $delivery = (float) str_replace(',', '.', $get('delivery_cost') ?? 0);
+                                                            $pickup = (float) str_replace(',', '.', $get('pickup_cost') ?? 0);
+                                                            $total = $delivery + $pickup;
+                                                            return number_format($total, 2, '.', '');
+                                                        }
+                                                        return number_format((float)$state, 2, '.', '');
+                                                    }),
+
+                                                TextInput::make('summary_deposit')
+                                                    ->label('Kaucja')
+                                                    ->readOnly()
+                                                    ->suffix('zł')
+                                                    ->live()
+                                                    ->formatStateUsing(function ($state, Get $get) {
+                                                        if (empty($state)) {
+                                                            $deposit = (float) str_replace(',', '.', $get('deposit') ?? 0);
+                                                            return number_format($deposit, 2, '.', '');
+                                                        }
+                                                        return number_format((float)$state, 2, '.', '');
+                                                    }),
+                                            ]),
+
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextInput::make('vat_rate')
+                                                    ->label('Stawka VAT (%)')
+                                                    ->numeric()
+                                                    ->default(23)
+                                                    ->minValue(0)
+                                                    ->maxValue(99)
+                                                    ->required()
+                                                    ->live()
+                                                    ->afterStateUpdated(fn (Get $get, Set $set) => self::updateSummaryFields($get, $set)),
+
+                                                TextInput::make('summary_total')
+                                                    ->label('RAZEM DO ZAPŁATY')
+                                                    ->readOnly()
+                                                    ->suffix('zł')
+                                                    ->extraInputAttributes(['class' => 'text-lg font-bold text-primary-600'])
+                                                    ->live()
+                                                    ->formatStateUsing(function ($state, Get $get) {
+                                                        if (empty($state)) {
+                                                            $total = self::calculateGrandTotal($get);
+                                                            return number_format($total, 2, '.', '');
+                                                        }
+                                                        return number_format((float)$state, 2, '.', '');
+                                                    }),
+                                            ]),
+                                    ]),
                             ]),
                     ])
                     ->columnSpanFull(),
+            ]);
+    }
 
-                // Sekcja wynajmu
-                Section::make('Szczegóły wynajmu')
-                    ->description('Informacje dotyczące okresu i kosztów wynajmu')
-                    ->icon('heroicon-o-calendar-days')
-                    ->collapsible()
-                    ->schema([
-                        Grid::make(3)
-                            ->schema([
-                                DatePicker::make('rental_date')
-                                    ->label('Data wynajmu')
-                                    ->prefixIcon('heroicon-o-calendar')
-                                    ->native(false)
-                                    ->displayFormat('d.m.Y')
-                                    ->default(now()->toDateString())
-                                    ->live()
-                                    ->afterStateUpdated(function (Set $set, Get $get, $state) {
-                                        $rentalDate = $state;
-                                        $expectedReturnDate = $get('expected_return_date');
-                                        if ($rentalDate && (!$expectedReturnDate || Carbon::parse($expectedReturnDate)->lte(Carbon::parse($rentalDate)))) {
-                                            $newReturn = Carbon::parse($rentalDate)->addDay()->toDateString();
-                                            $set('expected_return_date', $newReturn);
-                                            $rentalDateObj = Carbon::parse($rentalDate)->startOfDay();
-                                            $expectedReturnDateObj = Carbon::parse($newReturn)->startOfDay();
-                                            $days = (int) $rentalDateObj->diffInDays($expectedReturnDateObj, false);
-                                            $set('rental_days', max($days, 1));
-                                        } elseif ($rentalDate && $expectedReturnDate) {
-                                            $rentalDateObj = Carbon::parse($rentalDate)->startOfDay();
-                                            $expectedReturnDateObj = Carbon::parse($expectedReturnDate)->startOfDay();
-                                            $days = (int) $rentalDateObj->diffInDays($expectedReturnDateObj, false);
-                                            $set('rental_days', max($days, 1));
-                                        } else {
-                                            $set('rental_days', null);
-                                        }
-                                    })
-                                    ->columnSpan(['sm' => 3, 'md' => 1]),
+    private static function calculateDays(Get $get, Set $set): void
+    {
+        $rentalDate = $get('rental_date');
+        $returnDate = $get('expected_return_date');
+        
+        if ($rentalDate && $returnDate) {
+            $days = Carbon::parse($rentalDate)->diffInDays(Carbon::parse($returnDate));
+            $set('rental_days', max($days, 1));
+            self::updateSummaryFields($get, $set);
+        }
+    }
 
-                                DatePicker::make('expected_return_date')
-                                    ->label('Przewidywany zwrot')
-                                    ->prefixIcon('heroicon-o-calendar')
-                                    ->native(false)
-                                    ->displayFormat('d.m.Y')
-                                    ->minDate(fn (Get $get) => $get('rental_date') ? Carbon::parse($get('rental_date'))->addDay()->toDateString() : now()->addDay()->toDateString())
-                                    ->default(now()->addDay()->toDateString())
-                                    ->live()
-                                    ->afterStateUpdated(function (Set $set, Get $get, $state) {
-                                        $rentalDate = $get('rental_date');
-                                        $expectedReturnDate = $state;
-                                        if ($rentalDate && $expectedReturnDate) {
-                                            $rentalDateObj = Carbon::parse($rentalDate)->startOfDay();
-                                            $expectedReturnDateObj = Carbon::parse($expectedReturnDate)->startOfDay();
-                                            $days = (int) $rentalDateObj->diffInDays($expectedReturnDateObj, false);
-                                            $set('rental_days', max($days, 1));
-                                        } else {
-                                            $set('rental_days', null);
-                                        }
-                                    })
-                                    ->columnSpan(['sm' => 3, 'md' => 1]),
+    private static function calculateProductsPerDay(Get $get): float
+    {
+        $products = collect($get('products') ?? []);
+        return $products->sum(fn ($item) => (float) str_replace(',', '.', $item['total_price'] ?? 0));
+    }
 
-                                TextInput::make('rental_days')
-                                    ->label('Liczba dni')
-                                    ->prefixIcon('heroicon-o-clock')
-                                    ->numeric()
-                                    ->suffix('dni')
-                                    ->readOnly()
-                                    ->default(function (Get $get) {
-                                        $rentalDate = $get('rental_date') ?? now()->toDateString();
-                                        $expectedReturnDate = $get('expected_return_date') ?? now()->addDay()->toDateString();
-                                        $rentalDate = Carbon::parse($rentalDate)->startOfDay();
-                                        $expectedReturnDate = Carbon::parse($expectedReturnDate)->startOfDay();
-                                        $days = (int) $rentalDate->diffInDays($expectedReturnDate, false);
-                                        return max($days, 1);
-                                    })
-                                    ->live()
-                                    ->columnSpan(['sm' => 3, 'md' => 1]),
-                            ]),
+    private static function calculateGrandTotal(Get $get): float
+    {
+        $productsPerDay = self::calculateProductsPerDay($get);
+        $days = (int) ($get('rental_days') ?? 1);
+        $products = $productsPerDay * $days;
+        
+        $delivery = (float) str_replace(',', '.', $get('delivery_cost') ?? 0);
+        $pickup = (float) str_replace(',', '.', $get('pickup_cost') ?? 0);
+        
+        // Kaucja NIE jest dodawana do sumy - to zabezpieczenie, nie koszt!
+        $net = $products + $delivery + $pickup;
+        $vatRate = (float) ($get('vat_rate') ?? 23);
+        $vat = $net * ($vatRate / 100);
+        
+        return $net + $vat;
+    }
 
-                        TextInput::make('equipment_location')
-                            ->label('Lokalizacja wynajętego sprzętu')
-                            ->prefixIcon('heroicon-o-map-pin')
-                            ->placeholder('np. ul. Kopaniny 2, 43-175 Wyry')
-                            ->maxLength(255)
-                            ->columnSpanFull(),
-                    ])
-                    ->columnSpanFull(),
-
-                // Sekcja dostawy i kosztów
-                Section::make('Dostawa i koszty')
-                    ->description('Sposób dostawy i związane z tym koszty')
-                    ->icon('heroicon-o-truck')
-                    ->collapsible()
-                    ->schema([
-                        Select::make('delivery_method')
-                            ->label('Sposób dostawy')
-                            ->options([
-                                'self_pickup' => 'Odbiór osobisty',
-                                'delivery_to_customer' => 'Dostawa do klienta',
-                            ])
-                            ->default('self_pickup')
-                            ->required()
-                            ->prefixIcon('heroicon-o-truck')
-                            ->native(false)
-                            ->live()
-                            ->columnSpanFull(),
-
-                        Grid::make(3)
-                            ->schema([
-                                TextInput::make('delivery_cost')
-                                    ->label('Koszt dostawy')
-                                    ->prefixIcon('heroicon-o-banknotes')
-                                    ->numeric()
-                                    ->suffix('zł')
-                                    ->placeholder('0,00')
-                                    ->helperText('Podaj kwotę w groszach')
-                                    ->live(onBlur: true)
-                                    ->afterStateUpdated(fn (Get $get, Set $set) => self::updateSummary($get, $set))
-                                    ->columnSpan(['sm' => 3, 'md' => 1]),
-
-                                TextInput::make('pickup_cost')
-                                    ->label('Koszt odbioru')
-                                    ->prefixIcon('heroicon-o-banknotes')
-                                    ->numeric()
-                                    ->suffix('zł')
-                                    ->placeholder('0,00')
-                                    ->helperText('Podaj kwotę w groszach')
-                                    ->live(onBlur: true)
-                                    ->afterStateUpdated(fn (Get $get, Set $set) => self::updateSummary($get, $set))
-                                    ->columnSpan(['sm' => 3, 'md' => 1]),
-
-                                TextInput::make('deposit')
-                                    ->label('Kaucja')
-                                    ->prefixIcon('heroicon-o-shield-check')
-                                    ->numeric()
-                                    ->suffix('gr')
-                                    ->placeholder('0')
-                                    ->helperText('Podaj kwotę w groszach')
-                                    ->live()
-                                    ->afterStateUpdated(fn (Get $get, Set $set) => self::updateSummary($get, $set))
-                                    ->columnSpan(['sm' => 3, 'md' => 1]),
-                            ]),
-                    ])
-                    ->columnSpanFull(),
-
-                // Sekcja produktów w wynajmie
-                Section::make('Produkty w wynajmie')
-                    ->description('Lista produktów objętych umową')
-                    ->icon('heroicon-o-cube')
-                    ->collapsible()
-                    ->schema([
-                        Repeater::make('products')
-                            ->relationship('products')
-                            ->label('Produkty')
-                            ->table([
-                                TableColumn::make('Nazwa produktu'),
-                                TableColumn::make('Ilość'),
-                                TableColumn::make('Cena za dobę/szt.'),
-                                TableColumn::make('Wartość razem'),
-                            ])
-                            ->schema([
-
-                                Select::make('product_id')
-                                    ->label('Produkt')
-                                    ->options(fn () => Product::pluck('name', 'id'))
-                                    //->searchable()
-                                    ->required()
-                                    ->live()
-                                    ->columnSpanFull()
-                                    ->afterStateUpdated(function ($state, $set, $get) {
-                                        $product = Product::find($state);
-                                        if ($product) {
-                                            $set('product_name', $product->name);
-                                            $set('price_per_day', $product->price_per_day);
-                                            $qty = (float) ($get('quantity') ?? 1);
-                                            $set('total_price', $qty * (float) $product->price_per_day);
-                                        }
-                                        // Dodaj wywołanie przeliczenia podsumowania:
-                                        \App\Filament\Resources\RentalDocuments\Schemas\RentalDocumentForm::updateSummary($get, $set);
-                                    })
-                                    ->preload(),
-
-
-                                TextInput::make('quantity')
-                                    ->label('Ilość')
-                                    ->numeric()
-                                    ->default(1)
-                                    ->minValue(1)
-                                    ->required()
-                                    ->live(onBlur: true)
-                                    ->afterStateUpdated(function ($state, $get, $set) {
-                                        $qty = (float) $state;
-                                        $price = (float) $get('price_per_day');
-                                        $set('total_price', $qty * $price);
-                                    }),
-
-                                TextInput::make('price_per_day')
-                                    ->label('Cena za dobę/szt.')
-                                    ->numeric()
-                                    ->step('0.01')
-                                    ->inputMode('decimal')
-                                    ->suffix('zł')
-                                    ->required()
-                                    ->readOnly()
-                                    ->live(onBlur: true)
-                                    ->afterStateUpdated(function ($state, $get, $set) {
-                                        $qty = (float) $get('quantity');
-                                        $price = (float) $state;
-                                        $set('total_price', $qty * $price);
-                                    })
-                                    ->formatStateUsing(fn ($state) => number_format((float)$state, 2, ',', ' ')),
-
-                                TextInput::make('total_price')
-                                    ->label('Wartość razem')
-                                    ->numeric()
-                                    ->step('0.01')
-                                    ->inputMode('decimal')
-                                    ->suffix('zł')
-                                    ->readOnly()
-                                    ->default(0)
-                                    ->formatStateUsing(fn ($state) => number_format((float)$state, 2, ',', ' ')),
-                            ])
-                            ->addActionLabel('Dodaj produkt')
-                            ->live()
-                            ->afterStateUpdated(fn (Get $get, Set $set) => self::updateSummary($get, $set))
-                            ->columnSpanFull(),
-                    ])
-                    ->columnSpanFull(),
-
-                // Dodaj pole VAT i podsumowanie na końcu formularza
-                Section::make('Podsumowanie wynajmu')
-                    ->icon('heroicon-o-calculator')
-                    ->schema([
-                        // Suma produktów za 1 dzień
-                        \Filament\Forms\Components\Placeholder::make('summary_products_total_per_day')
-                            ->label('Suma produktów za 1 dzień')
-                            ->content(function (Get $get, Set $set) {
-                                $products = collect($get('products'));
-                                $sumProducts = $products->reduce(function ($sum, $item) {
-                                    return $sum + (float)($item['total_price'] ?? 0);
-                                }, 0);
-                                $set('summary_products_total_per_day', $sumProducts);
-                                return number_format($sumProducts, 2, ',', ' ') . ' zł';
-                            }),
-
-                        // Suma produktów za cały okres
-                        \Filament\Forms\Components\Placeholder::make('summary_products_total_period')
-                            ->label('Suma produktów za okres')
-                            ->content(function (Get $get, Set $set) {
-                                $sumProducts = (float) ($get('summary_products_total_per_day') ?? 0);
-                                $days = (int) ($get('rental_days') ?? 1);
-                                $total = $sumProducts * $days;
-                                $set('summary_products_total_period', $total);
-                                return number_format($total, 2, ',', ' ') . ' zł (' . $days . ' dni)';
-                            }),
-
-                        // Suma kosztów dostawy i odbioru (jednorazowo, bez mnożenia przez dni)
-                        \Filament\Forms\Components\Placeholder::make('summary_delivery_total_period')
-                            ->label('Suma dostaw i odbiorów')
-                            ->content(function (Get $get, Set $set) {
-                                $delivery = (float) ($get('delivery_cost') ?? 0);
-                                $pickup = (float) ($get('pickup_cost') ?? 0);
-                                $total = $delivery + $pickup;
-                                $set('summary_delivery_total_period', $total);
-                                return number_format($total, 2, ',', ' ') . ' zł';
-                            }),
-
-                        // Suma netto za okres (produkty + dostawa + odbiór + kaucja)
-                        \Filament\Forms\Components\Placeholder::make('summary_net_period')
-                            ->label('Suma netto za okres')
-                            ->content(function (Get $get, Set $set) {
-                                $products = (float) ($get('summary_products_total_period') ?? 0);
-                                $delivery = (float) ($get('summary_delivery_total_period') ?? 0);
-                                // $deposit = (float) ($get('deposit') ?? 0); // NIE dodawaj kaucji do sumy netto!
-                                $net = $products + $delivery;
-                                $set('summary_net_period', $net);
-                                return number_format($net, 2, ',', ' ') . ' zł';
-                            }),
-
-                        // VAT za okres
-                        \Filament\Forms\Components\Placeholder::make('summary_vat_period')
-                            ->label('VAT za okres')
-                            ->content(function (Get $get, Set $set) {
-                                $net = (float) ($get('summary_net_period') ?? 0);
-                                $vatRate = (float) ($get('vat_rate') ?? 23);
-                                $vat = round($net * $vatRate / 100, 2);
-                                $set('summary_vat_period', $vat);
-                                return number_format($vat, 2, ',', ' ') . ' zł';
-                            }),
-
-                        // Brutto za okres
-                        \Filament\Forms\Components\Placeholder::make('summary_gross_period')
-                            ->label('Suma brutto za okres')
-                            ->content(function (Get $get, Set $set) {
-                                $net = (float) ($get('summary_net_period') ?? 0);
-                                $vat = (float) ($get('summary_vat_period') ?? 0);
-                                $gross = $net + $vat;
-                                $set('summary_gross_period', $gross);
-                                return number_format($gross, 2, ',', ' ') . ' zł';
-                            }),
-
-                        // Stawka VAT
-                        \Filament\Forms\Components\TextInput::make('vat_rate')
-                            ->label('Stawka VAT (%)')
-                            ->numeric()
-                            ->default(23)
-                            ->minValue(0)
-                            ->maxValue(99)
-                            ->required()
-                            ->live(),
-                    ])
-                    ->columnSpanFull(),
-
-            ])
-            ->columns(1);
+    private static function updateSummaryFields(Get $get, Set $set): void
+    {
+        // Produkty za dobę
+        $productsPerDay = self::calculateProductsPerDay($get);
+        $set('summary_products_per_day', number_format($productsPerDay, 2, '.', ''));
+        
+        // Produkty za okres
+        $days = (int) ($get('rental_days') ?? 1);
+        $productsTotal = $productsPerDay * $days;
+        $set('summary_products_total', number_format($productsTotal, 2, '.', ''));
+        
+        // Dostawa i odbiór
+        $delivery = (float) str_replace(',', '.', $get('delivery_cost') ?? 0);
+        $pickup = (float) str_replace(',', '.', $get('pickup_cost') ?? 0);
+        $deliveryTotal = $delivery + $pickup;
+        $set('summary_delivery', number_format($deliveryTotal, 2, '.', ''));
+        
+        // Kaucja
+        $deposit = (float) str_replace(',', '.', $get('deposit') ?? 0);
+        $set('summary_deposit', number_format($deposit, 2, '.', ''));
+        
+        // Suma końcowa
+        $total = self::calculateGrandTotal($get);
+        $set('summary_total', number_format($total, 2, '.', ''));
     }
 
     public static function updateSummary(Get $get, Set $set): void
     {
-        $products = collect($get('products'));
-        $sumProducts = $products->reduce(function ($sum, $item) {
-            return $sum + (float)($item['total_price'] ?? 0);
-        }, 0);
-
-        $deposit = (float) ($get('deposit') ?? 0);
-        $delivery = (float) ($get('delivery_cost') ?? 0);
-        $pickup = (float) ($get('pickup_cost') ?? 0);
-
-        $net = $sumProducts + $deposit + $delivery + $pickup;
-        $vatRate = (float) ($get('vat_rate') ?? 23);
-        $vat = round($net * $vatRate / 100, 2);
-        $gross = $net + $vat;
-
-        $set('summary_net', $net);
-        $set('summary_vat', $vat);
-        $set('summary_gross', $gross);
+        self::updateSummaryFields($get, $set);
     }
 }

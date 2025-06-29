@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Products\Schemas;
 
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\FileUpload;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
 
@@ -22,7 +23,16 @@ class ProductForm
                             ->placeholder('np. Agregat prądotwórczy Honda')
                             ->prefixIcon('heroicon-o-cube')
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->unique(ignorable: fn ($record) => $record),
+
+                        FileUpload::make('image')
+                            ->label('Zdjęcie produktu')
+                            ->image()
+                            ->directory('products')
+                            ->maxSize(2048)
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                            ->helperText('Obsługiwane formaty: JPG, PNG, WEBP. Maksymalny rozmiar: 2MB'),
 
                         Textarea::make('description')
                             ->label('Opis produktu')

@@ -11,6 +11,7 @@ class Product extends Model
         'name',
         'description',
         'price_per_day',
+        'image',
     ];
 
     protected $casts = [

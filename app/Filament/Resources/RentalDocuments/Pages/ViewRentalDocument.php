@@ -16,4 +16,20 @@ class ViewRentalDocument extends ViewRecord
             EditAction::make(),
         ];
     }
+
+    /**
+     * Force loading relacji przed wyświetleniem
+     */
+    protected function resolveRecord($key): \Illuminate\Database\Eloquent\Model
+    {
+        $record = static::getResource()::resolveRecordRouteBinding($key);
+        
+        // Force reload relacji
+        $record->load([
+            'products',
+            'products.product'
+        ]);
+        
+        return $record;
+    }
 }
